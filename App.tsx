@@ -1,29 +1,31 @@
-import React, { useState } from 'react';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import LandingView from './views/LandingView';
-import UserView from './views/UserView';
-import DeveloperView from './views/DeveloperView';
-import { useWeb3 } from './hooks/useWeb3';
-import { useLootContract } from './hooks/useLootContract';
+import React, { useState } from "react";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import LandingView from "./views/LandingView";
+import UserView from "./views/UserView";
+import DeveloperView from "./views/DeveloperView";
+import { useWeb3 } from "./hooks/useWeb3";
+import { useLootContract } from "./hooks/useLootContract";
 
 const App: React.FC = () => {
-  const [activePortal, setActivePortal] = useState<'landing' | 'user' | 'dev'>('landing');
+  const [activePortal, setActivePortal] = useState<"landing" | "user" | "dev">(
+    "landing"
+  );
   const { account, signer, connect, isConnecting } = useWeb3();
-  const { 
-    inventory, 
-    loading, 
-    ticketPrice, 
-    buyTicket, 
-    mine, 
-    createTier, 
-    createBlueprint 
+  const {
+    inventory,
+    loading,
+    ticketPrice,
+    buyTicket,
+    loot,
+    createTier,
+    createBlueprint,
   } = useLootContract(signer, account);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
-      <Navbar 
-        activePortal={activePortal} 
+      <Navbar
+        activePortal={activePortal}
         setActivePortal={setActivePortal}
         account={account}
         connectWallet={connect}
@@ -31,30 +33,29 @@ const App: React.FC = () => {
       />
 
       <main className="w-full">
-        {activePortal === 'landing' && (
-          <LandingView 
-            onEnterApp={() => setActivePortal('user')} 
-            onEnterDev={() => setActivePortal('dev')} 
+        {activePortal === "landing" && (
+          <LandingView
+            onEnterApp={() => setActivePortal("user")}
+            onEnterDev={() => setActivePortal("dev")}
           />
         )}
-        
-        {activePortal === 'user' && (
+
+        {activePortal === "user" && (
           <UserView
-                      account={account}
+            account={account}
             connectWallet={connect}
-             
             inventory={inventory}
             buyTicket={buyTicket}
-            mine={mine}
+            loot={loot}
             isLooting={loading}
             ticketPrice={ticketPrice}
           />
         )}
 
-        {activePortal === 'dev' && (
+        {activePortal === "dev" && (
           <DeveloperView
-                      account={account}
-            connectWallet={connect} 
+            account={account}
+            connectWallet={connect}
             onAddTier={createTier}
             onAddBlueprint={createBlueprint}
             loading={loading}

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { UserInventoryItem, RollResult } from '../types';
+import {CONTRACT_ADDRESS} from "../hooks/useLootContract"
 
 interface UserViewProps {
   account: string | null;
   connectWallet: () => void;
   inventory: UserInventoryItem[];
   buyTicket: (seed: string, amount: number) => Promise<string | null>;
-  mine: () => Promise<RollResult>;
+  loot: () => Promise<RollResult>;
   isLooting: boolean;
   ticketPrice: string;
 }
@@ -16,7 +17,7 @@ const UserView: React.FC<UserViewProps> = ({
   connectWallet,
   inventory,
   buyTicket,
-  mine,
+  loot,
   isLooting,
   ticketPrice
 }) => {
@@ -33,6 +34,7 @@ const UserView: React.FC<UserViewProps> = ({
       return;
     }
     try {
+      console.log("Bought with seed", seed)
       const hash = await buyTicket(seed, amount);
       if (hash) setStep('wait');
     } catch (e: any) {
@@ -43,7 +45,8 @@ const UserView: React.FC<UserViewProps> = ({
 
   const handleMine = async () => {
     try {
-      const result = await mine();
+      console.log("Looting by seed", seed)
+      const result = await loot(seed);
       setLastResult(result);
     } catch (e: any) {
       console.error(e);
@@ -212,7 +215,7 @@ const UserView: React.FC<UserViewProps> = ({
               <div className="bg-black/40 p-4 rounded-3xl border border-white/5 text-center">
                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">Active Contract</p>
                  <code className="text-[10px] block truncate text-indigo-300 font-mono">
-                    0x1388dfB470B021fC801d43df99F97234eADdA601
+                    {CONTRACT_ADDRESS}
                  </code>
               </div>
             </div>

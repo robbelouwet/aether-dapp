@@ -2,7 +2,23 @@ import { useState, useCallback, useEffect } from "react";
 import { ethers } from "ethers";
 import { UserInventoryItem, RollResult } from "../types";
 
-const CONTRACT_ADDRESS = "0x3E28aB17f71487B4F59bD43D99f81b9d9840D413";
+import {
+  initSDK,
+  createInstance,
+  SepoliaConfig,
+} from "@zama-fhe/relayer-sdk/bundle";
+import { JsonRpcSigner } from "ethers";
+const init = async () => {
+  await initSDK(); // Load FHE
+  const config = { ...SepoliaConfig, network: window.ethereum };
+  return createInstance(config);
+};
+
+init().then((instance) => {
+  console.log(instance);
+});
+
+export const CONTRACT_ADDRESS = "0x0842A24806Deb96c70576e2b380042042c009F83";
 
 const LOOT_ABI = [
   "function addTier(string name, uint256 modulo_target, uint256 rarity) public returns (uint256)",
@@ -18,6 +34,34 @@ export const useLootContract = (signer: any, account: string | null) => {
   const [ticketPriceWei, setTicketPriceWei] = useState<bigint>(0n);
   const [ticketPriceEth, setTicketPriceEth] = useState<string>("...");
   const [inventory, setInventory] = useState<UserInventoryItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      if (!signer) return;
+
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, LOOT_ABI, signer);
+      const userAddress = await signer.getAddress(); // ensure correct checksum
+      const filter = contract.filters.minedSuccessfully(userAddress);
+
+      const fromBlock = 0; // or the block you deployed the contract
+      const logs = await contract.queryFilter(filter, fromBlock, "latest");
+
+      console.log("fetched logs:", logs);
+
+      const items: UserInventoryItem[] = logs.map((log) => {
+        const parsed = contract.interface.parseLog(log); // parse raw log
+        return {
+          mintId: log.transactionHash,
+          tierName: parsed.args.tier_name,
+          blueprintName: parsed.args.blueprint_name,
+          timestamp: Date.now(),
+          itemId: parsed.args.rarity.toString(),
+        };
+      });
+
+      setInventory(items.reverse());
+    })();
+  }, [signer]);
 
   const fetchConfig = useCallback(async () => {
     if (!signer) return;
@@ -83,13 +127,13 @@ export const useLootContract = (signer: any, account: string | null) => {
     }
   };
 
-  const mine = async (): Promise<RollResult> => {
+  const loot = async (seed: string): Promise<RollResult> => {
     if (!signer) throw new Error("Wallet not connected.");
     setLoading(true);
     try {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, LOOT_ABI, signer);
-      const tx = await contract.mine({
-        gasLimit: 600000,
+      const tx = await contract.loot(seed, {
+        gasLimit: 6000000,
       });
 
       const receipt = await tx.wait();
@@ -166,7 +210,7 @@ export const useLootContract = (signer: any, account: string | null) => {
     ticketPrice: ticketPriceEth,
     inventory,
     buyTicket,
-    mine,
+    loot: loot,
     createTier,
     createBlueprint,
   };
